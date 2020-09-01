@@ -1,0 +1,59 @@
+import zipfile
+import PIL
+from PIL import Image
+import pytesseract
+import cv2 as cv
+import numpy as np
+
+# loading the face detection classifier
+face_cascade = cv.CascadeClassifier('readonly/haarcascade_frontalface_default.xml')
+
+# the rest is up to you!
+
+with zipfile.ZipFile('readonly/small_img.zip', 'r') as myzip: #open the zipfile readonly
+    ziplist = myzip.infolist()
+    objlist = []
+    for item in ziplist:  #iterate through the objects (newspapers) in the zipfile using .infolist()
+        myzip.extract(item.filename) #extract files one by one
+        image = Image.open(item.filename) #create image file from the extracted newspapers
+        text = pytesseract.image_to_string(image)
+        if "Christopher" in text:
+            print("Results found in file " + item.filename)
+            img = cv.imread(item.filename)
+            gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+            faces = face_cascade.detectMultiScale(gray, 1.35)
+            facelist = []
+
+            for x,y,w,h in faces:
+                im = image.crop((x,y,x+w,y+h))
+                MAX_SIZE = (100, 100) 
+                im.thumbnail(MAX_SIZE)
+                #display(im)
+                facelist.append(im)
+            
+            if len(facelist)==0:
+                print("But there were no faces in that file!")
+            else:
+                
+            # create a contact sheet 
+                first_image=facelist[0]
+                contact_sheet=PIL.Image.new(first_image.mode, (first_image.width*5,first_image.height*(1+len(facelist)//5)))
+                x=0
+                y=0
+                                    
+                for img in facelist:
+            # Lets paste the current image into the contact sheet
+                    contact_sheet.paste(img, (x, y) )
+        # Now we update our X position. If it is going to be the width of the image, then we set it to 0
+        # and update Y as well to point to the next "line" of the contact sheet.
+                    if x+first_image.width == contact_sheet.width:
+                        x=0
+                        y=y+first_image.height
+                    else:
+                        x=x+first_image.width                            
+                display(contact_sheet)
+    myzip.close()
+
+
+
+​
